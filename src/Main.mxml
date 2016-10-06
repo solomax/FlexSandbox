@@ -1,0 +1,274 @@
+<?xml version="1.0"?>
+<s:WindowedApplication
+		xmlns:fx="http://ns.adobe.com/mxml/2009"
+		xmlns:mx="library://ns.adobe.com/flex/mx"
+		xmlns:s="library://ns.adobe.com/flex/spark"
+		addedToStage="preinitialize()"
+>
+	<fx:Script>
+	<![CDATA[
+		private const linewidth:int = 2;
+		private const stroke:uint = 0xFF6600;
+		private var points:Vector.<Point> = new <Point>[];
+		private var g:Graphics;
+
+		function preinitialize():void {
+			g = area.graphics;
+			area.addEventListener(MouseEvent.MOUSE_DOWN, startDraw);
+			area.addEventListener(MouseEvent.MOUSE_UP, stopDraw);
+			g.lineStyle(linewidth, stroke);
+		}
+
+		function startDraw(e:MouseEvent):void {
+			g.moveTo(e.stageX, e.stageY);
+			points.push(new Point(e.stageX, e.stageY))
+			area.addEventListener(MouseEvent.MOUSE_MOVE, drawLine);
+		}
+
+		function stopDraw(e:MouseEvent):void {
+			area.removeEventListener(MouseEvent.MOUSE_MOVE, drawLine);
+		}
+
+		function drawLine(e:MouseEvent):void {
+			g.lineTo(e.stageX, e.stageY);
+			points.push(new Point(e.stageX, e.stageY))
+		}
+	]]>
+	</fx:Script>
+    <!--fx:Script>
+
+    Smoothing using cubicCurveTo and additional points
+
+	<![CDATA[
+		private const stroke_red:uint = 0xFF0000;
+		private const stroke_green:uint = 0x00FF00;
+		private const stroke_blue:uint = 0x0000FF;
+		private const EPSILON:Number = 1.0e-5;
+
+		function l1(p1:Number, p:Number, p3:Number, d:Number):Number {
+			var df = Math.abs(p3 - p1), dp = p3 - p;
+			//var r = df == 0 ? 1 : .5 * d * dp / df;
+			var r = .3 * dp;
+			return r;
+		}
+
+		function curve(g:Graphics, a1:Point, c1:Point, c2:Point, a2:Point):void {
+			g.cubicCurveTo(c1.x, c1.y, c2.x, c2.y, a2.x, a2.y);
+
+			//BEGIN TODO temp
+			g.lineStyle(1, stroke_red);
+			g.beginFill(stroke_red);
+			g.drawCircle(a1.x, a1.y, 2);
+			g.drawCircle(a2.x, a2.y, 2);
+			g.endFill();
+			g.lineStyle(1, stroke_green);
+			g.beginFill(stroke_green);
+			g.drawCircle(c1.x, c1.y, 1);
+			g.endFill();
+			g.lineStyle(1, stroke_blue);
+			g.beginFill(stroke_blue);
+			g.drawCircle(c2.x, c2.y, 1);
+			g.endFill();
+			g.moveTo(a2.x, a2.y);
+			g.lineStyle(linewidth, stroke);
+			//END TODO temp
+		}
+
+		function normalize(p:Point):void {
+			var l:Number = Math.sqrt(p.x * p.x + p.y * p.y);
+			p.x /= l;
+			p.y /= l;
+		}
+
+		function addMult(c:Point, t:Point, l:Number):void {
+			c.x += t.x * l;
+			c.y += t.y * l;
+		}
+
+		function subMult(c:Point, t:Point, l:Number):void {
+			c.x -= t.x * l;
+			c.y -= t.y * l;
+		}
+
+		function drawCurve(layer:Sprite, points:Vector.<Point>):void {
+			var n:int = points.length - 1;
+
+			if (n < 2) {
+				//TODO check this
+				return;
+			}
+
+			var tgL:Point, tgR:Point = new Point(0, 0), cur:Point, next:Point = points[1].subtract(points[0]);
+			var a1:Point, c1:Point, c2:Point, a2:Point;
+			normalize(next);
+			var l1:Number, l2:Number;
+
+			- -n;
+
+			var g:Graphics = layer.graphics;
+			g.lineStyle(linewidth, stroke);
+			g.moveTo(points[0].x, points[0].y);
+			for (var i:int = 0; i < n; ++i) {
+				a1 = c1 = points[i];
+				c2 = a2 = points[i + 1];
+
+				cur = next;
+				next = points[i + 2].subtract(a2);
+				normalize(next);
+
+				tgL = tgR;
+
+				tgR = cur.add(next);
+				normalize(tgR);
+
+				if (Math.abs(a2.y - a1.y) < EPSILON) {
+					l1 = l2 = 0.0;
+				} else {
+					var tmp:Number = a2.x - a1.x;
+					l1 = Math.abs(tgL.x) > EPSILON ? tmp / (2.0 * tgL.x) : 1.0;
+					l2 = Math.abs(tgR.x) > EPSILON ? tmp / (2.0 * tgR.x) : 1.0;
+				}
+
+				if (Math.abs(tgL.x) > EPSILON && Math.abs(tgR.x) > EPSILON) {
+					var tmp:Number = tgL.y / tgL.x - tgR.y / tgR.x;
+					if (Math.abs(tmp) > EPSILON) {
+						var x:Number = (a2.y - tgR.y / tgR.x * a2.x - a1.y + tgL.y / tgL.x * a1.x) / tmp;
+						if (x > a1.x && x < a2.x) {
+							if (tgL.y > 0.0) {
+								if (l1 > l2) {
+									l1 = 0.0;
+								} else {
+									l2 = 0.0;
+								}
+							} else {
+								if (l1 < l2) {
+									l1 = 0.0;
+								} else {
+									l2 = 0.0;
+								}
+							}
+						}
+					}
+				}
+
+				addMult(c1, tgL, l1);
+				subMult(c2, tgR, l2);
+				curve(g, a1, c1, c2, a2);
+			}
+
+			l1 = Math.abs(tgL.x) > EPSILON ? (points[n + 1].x - points[n].x) / (2.0 * tgL.x) : 1.0;
+
+			a1 = c1 = points[n];
+			c2 = a2 = points[n + 1];
+			addMult(c1, tgR, l1);
+			curve(g, a1, c1, c2, a2);
+		}
+
+		 function drawCurve1(layer:Sprite, points:Array):void {
+			 if (points.length > 1) {
+				 // https://habrahabr.ru/post/264191/
+				 var g:Graphics = layer.graphics;
+				 g.lineStyle(linewidth, stroke);
+				 g.moveTo(points[0].x, points[0].y);
+				 for (var i = 0; i < points.length - 1; ++i) {
+					 var p:Point = points[i];
+					 var p1:Point = i == 0 ? p : points[i - 1];
+					 var p3:Point = points[i + 1];
+					 var d:Number = Point.distance(p3, p1);
+					 var l1x:Number = l1(p1.x, p.x, p3.x, d)
+						 , l1y:Number = l1(p1.y, p.y, p3.y, d)
+						 , pr1:Number = p.x == p1.x ? 0 : (p.y - p1.y) / (p.x - p1.x)
+						 , pr2:Number = p3.x == p.x ? 0 : (p3.y - p.y) / (p3.x - p.x);
+					 var c1:Point, c2:Point;
+					 if (i == 0) {
+						 c1 = p;
+					 }
+					 if (pr1 > pr2) {
+						 c1 = new Point(p.x, p.y + l1y);
+						 c2 = new Point(p3.x - l1x, p3.y);
+					 } else {
+						 c1 = new Point(p.x + l1x, p.y);
+						 c2 = new Point(p3.x, p3.y - l1y);
+					 }
+					 curve(g, p, c1, c2, p3);
+				 }
+			 } else {
+				 //draw line
+			 }
+		 }
+
+		function preinitialize():void {
+			var spBoard:Sprite = new Sprite();
+			area.addChild(spBoard);
+			drawCurve(spBoard, Vector.<Point>([
+				 new Point(0, 100)
+				 , new Point(100, 0)
+				 , new Point(200, 100)
+				 , new Point(100, 200)
+				 , new Point(0, 100)
+			 ]));
+			 drawCurve(spBoard, Vector.<Point>([
+				 new Point(0, 100)
+				 , new Point(100, 200)
+				 , new Point(200, 100)
+				 , new Point(100, 0)
+				 , new Point(0, 100)
+			 ]));
+			drawCurve(spBoard, Vector.<Point>([
+				new Point(0, 0)
+				, new Point(5*20, 0)
+				, new Point(5*45, -47)
+				, new Point(5*53, 335)
+				, new Point(5*57, 26)
+				, new Point(5*62, 387)
+				, new Point(5*74, 104)
+				, new Point(5*89, 0)
+				, new Point(5*95, 100)
+				, new Point(5*100, 0)
+			]));
+		}
+	]]>
+	</fx:Script-->
+
+	<!--fx:Script><![CDATA[
+
+	Multi lang textbox
+
+		import flash.text.engine.FontLookup;
+
+		import flashx.textLayout.conversion.TextConverter;
+		import flashx.textLayout.elements.TextFlow;
+		import flashx.textLayout.formats.TextLayoutFormat;
+
+		import mx.controls.Alert;
+
+		import spark.components.RichText;
+
+		function preinitialize():void {
+			var rt:RichText = new RichText();
+			addElement(rt);
+			var sa:String = "الفريق من الإتحاد الدولي لكرة القدم 'فيفا' وحرمانه من إجراء تعاقدات خلال فترتي الإنتقالات المقبلتين.";
+			var se:String = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+			var sc:String = "习近平：按照时间表路线图推进改革\n\n\n\n			习近平8月30日上午主持召开中央全面深化改革领导小组第二十七次会议并发表重要讲话。他强调，当前和今后一个时期，是全面深化改革的施工高峰期，是落实改革任务的攻坚期，抓谋划、抓统筹、抓落实的任务依然艰巨繁重。要按照既定的时间表、路线图，更加注重发挥经济体制改革的牵引作用，更加有针对性解决各领域各层面各环节的矛盾和问题，强化基础支撑，注重系统集成，完善工作机制，严格督察落实，不断提高改革精准化、精细化水平，坚定不移把全面深化改革推向前进。";
+
+			//rt.text = se;
+			rt.width = 200;
+			rt.textFlow = TextConverter.importToFlow(sc, TextConverter.TEXT_FIELD_HTML_FORMAT);
+			var cf:TextLayoutFormat = new TextLayoutFormat();
+			rt.textFlow.hostFormat = cf;
+			cf.fontFamily = "Arial,_sans";
+			cf.fontSize = 12;
+			cf.fontLookup = FontLookup.DEVICE;
+			rt.y = 40;
+
+			var tf1:TextField = new TextField();
+			tf1.text = sc;
+			addElement(tf1);
+
+			var tf2:TextField = new TextField();
+			tf2.text = sa;
+			addElement(tf2);
+		}
+	]]></fx:Script-->
+	<mx:UIComponent id="area" width="800" height="600"/>
+</s:WindowedApplication>
