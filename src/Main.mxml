@@ -14,19 +14,19 @@
 
 		function preinitialize():void {
 			g = area.graphics;
-			area.addEventListener(MouseEvent.MOUSE_DOWN, startDraw);
-			area.addEventListener(MouseEvent.MOUSE_UP, stopDraw);
+			stage.addEventListener(MouseEvent.MOUSE_DOWN, startDraw);
+			stage.addEventListener(MouseEvent.MOUSE_UP, stopDraw);
 			g.lineStyle(linewidth, stroke);
 		}
 
 		function startDraw(e:MouseEvent):void {
 			g.moveTo(e.stageX, e.stageY);
 			points.push(new Point(e.stageX, e.stageY))
-			area.addEventListener(MouseEvent.MOUSE_MOVE, drawLine);
+			stage.addEventListener(MouseEvent.MOUSE_MOVE, drawLine);
 		}
 
 		function stopDraw(e:MouseEvent):void {
-			area.removeEventListener(MouseEvent.MOUSE_MOVE, drawLine);
+			stage.removeEventListener(MouseEvent.MOUSE_MOVE, drawLine);
 		}
 
 		function drawLine(e:MouseEvent):void {
