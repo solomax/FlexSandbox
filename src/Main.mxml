@@ -27,10 +27,13 @@
 
 		function stopDraw(e:MouseEvent):void {
 			stage.removeEventListener(MouseEvent.MOUSE_MOVE, drawLine);
+			for (var i:uint = 0; i < points.length; ++i) {
+				g.lineTo(points[i].x, points[i].y);
+			}
 		}
 
 		function drawLine(e:MouseEvent):void {
-			g.lineTo(e.stageX, e.stageY);
+			//g.lineTo(e.stageX, e.stageY);
 			points.push(new Point(e.stageX, e.stageY))
 		}
 	]]>

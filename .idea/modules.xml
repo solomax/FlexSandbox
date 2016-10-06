@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/FlexSandbox.iml" filepath="$PROJECT_DIR$/FlexSandbox.iml" />
+      <module fileurl="file://$PROJECT_DIR$/src/web.iml" filepath="$PROJECT_DIR$/src/web.iml" />
     </modules>
   </component>
 </project>

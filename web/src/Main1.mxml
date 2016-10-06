@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<s:Application
+		xmlns:fx="http://ns.adobe.com/mxml/2009"
+		xmlns:mx="library://ns.adobe.com/flex/mx"
+		xmlns:s="library://ns.adobe.com/flex/spark"
+		addedToStage="preinitialize()"
+	>
+	<fx:Script>
+	<![CDATA[
+		private const linewidth:int = 2;
+		private const stroke:uint = 0xFF6600;
+		private var points:Vector.<Point> = new <Point>[];
+		private var g:Graphics;
+
+		function preinitialize():void {
+			g = area.graphics;
+			stage.addEventListener(MouseEvent.MOUSE_DOWN, startDraw);
+			stage.addEventListener(MouseEvent.MOUSE_UP, stopDraw);
+			g.lineStyle(linewidth, stroke);
+		}
+
+		function startDraw(e:MouseEvent):void {
+			g.moveTo(e.stageX, e.stageY);
+			points.push(new Point(e.stageX, e.stageY))
+			stage.addEventListener(MouseEvent.MOUSE_MOVE, drawLine);
+		}
+
+		function stopDraw(e:MouseEvent):void {
+			stage.removeEventListener(MouseEvent.MOUSE_MOVE, drawLine);
+			for (var i:uint = 0; i < points.length; ++i) {
+				g.lineTo(points[i].x, points[i].y);
+			}
+		}
+
+		function drawLine(e:MouseEvent):void {
+			//g.lineTo(e.stageX, e.stageY);
+			points.push(new Point(e.stageX, e.stageY))
+		}
+	]]>
+	</fx:Script>
+	<mx:UIComponent id="area" width="800" height="600"/>
+</s:Application>
